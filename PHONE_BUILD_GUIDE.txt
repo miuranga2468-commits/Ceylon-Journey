@@ -1,0 +1,10 @@
+
+
+PHONE-ONLY APK BUILD (GitHub Actions)
+1. Upload the contents of this project to the root of your GitHub repository. Keep the .github folder (it may be hidden in some file managers).
+2. Open the repository on GitHub in Chrome and choose Actions.
+3. Select “Build Ceylon Journey APK”, then “Run workflow”.
+4. Wait for the workflow to finish successfully. Open the completed run, scroll to Artifacts, and download Ceylon-Journey-APK.
+5. Extract the downloaded artifact ZIP to get app-debug.apk. Open it on your Android phone and allow installation from that browser/file manager if Android asks. Only install APKs from your own trusted build.
+
+The APK is a debug build for testing, not a Play Store release.
