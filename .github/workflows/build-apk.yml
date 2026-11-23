@@ -37,6 +37,31 @@ jobs:
           fi
           unzip -o "$ZIP" -d .
 
+      - name: Add AndroidX Core Dependency
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("android-app/app/build.gradle")
+          s = p.read_text()
+
+          dep = "implementation 'androidx.core:core:1.15.0'"
+
+          if dep not in s:
+              if "dependencies {" in s:
+                  s = s.replace(
+                      "dependencies {",
+                      "dependencies {\n    " + dep,
+                      1
+                  )
+              else:
+                  s += "\n\ndependencies {\n    " + dep + "\n}\n"
+
+              p.write_text(s)
+
+          print("AndroidX Core dependency added successfully")
+          PY
+          
       - name: Install Android SDK Packages
         run: |
           sdkmanager --install \
