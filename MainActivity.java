@@ -16,6 +16,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 public class MainActivity extends Activity {
+
     private static final int LOCATION_REQUEST = 101;
     private WebView web;
     private GeolocationPermissions.Callback pendingGeoCallback;
@@ -31,37 +32,50 @@ public class MainActivity extends Activity {
         web.getSettings().setGeolocationEnabled(true);
 
         web.setWebViewClient(new WebViewClient() {
+
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            public boolean shouldOverrideUrlLoading(
+                WebView view, WebResourceRequest request) {
                 return handleUrl(request.getUrl().toString());
             }
 
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            public boolean shouldOverrideUrlLoading(
+                WebView view, String url) {
                 return handleUrl(url);
             }
         });
 
         web.setWebChromeClient(new WebChromeClient() {
+
             @Override
             public void onGeolocationPermissionsShowPrompt(
-                String origin, GeolocationPermissions.Callback callback) {
+                String origin,
+                GeolocationPermissions.Callback callback) {
 
-                if (ContextCompat.checkSelfPermission(MainActivity.this,
-                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                    ContextCompat.checkSelfPermission(MainActivity.this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                if (ContextCompat.checkSelfPermission(
+                    MainActivity.this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(
+                    MainActivity.this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED) {
 
                     callback.invoke(origin, true, false);
+
                 } else {
                     pendingGeoOrigin = origin;
                     pendingGeoCallback = callback;
 
-                    ActivityCompat.requestPermissions(MainActivity.this,
+                    ActivityCompat.requestPermissions(
+                        MainActivity.this,
                         new String[]{
                             Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION
-                        }, LOCATION_REQUEST);
+                        },
+                        LOCATION_REQUEST
+                    );
                 }
             }
         });
@@ -71,59 +85,82 @@ public class MainActivity extends Activity {
     }
 
     private boolean handleUrl(String url) {
+
         try {
             if (url.startsWith("intent://")) {
-                String fallback = null;
 
-                int start = url.indexOf("S.browser_fallback_url=");
-                if (start >= 0) {
-                    start += "S.browser_fallback_url=".length();
-                    int end = url.indexOf(";end", start);
-                    if (end < 0) end = url.length();
-                    fallback = Uri.decode(url.substring(start, end));
+                Intent intent = Intent.parseUri(
+                    url, Intent.URI_INTENT_SCHEME);
+
+                intent.setAction(Intent.ACTION_VIEW);
+
+                if (intent.resolveActivity(getPackageManager()) != null) {
+                    startActivity(intent);
+                    return true;
                 }
 
-                if (fallback != null && fallback.startsWith("https://")) {
-                    startExternal(fallback);
+                String fallback = intent.getStringExtra(
+                    "browser_fallback_url");
+
+                if (fallback != null && !fallback.isEmpty()) {
+                    openExternal(fallback);
                 } else {
-                    startExternal("https://www.google.com/maps");
+                    openExternal(
+                        "https://www.google.com/maps");
                 }
+
                 return true;
             }
 
-            if (url.startsWith("https://") || url.startsWith("http://")) {
-                startExternal(url);
+            if (url.startsWith("https://") ||
+                url.startsWith("http://")) {
+
+                openExternal(url);
                 return true;
             }
 
-            return false;
+            return true;
+
         } catch (Exception e) {
             return true;
         }
     }
 
-    private void startExternal(String url) {
+    private void openExternal(String url) {
         try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            Intent intent = new Intent(
+                Intent.ACTION_VIEW, Uri.parse(url));
+
             startActivity(intent);
+
         } catch (Exception e) {
             web.loadUrl(url);
         }
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-        String[] permissions, int[] results) {
+    public void onRequestPermissionsResult(
+        int requestCode,
+        String[] permissions,
+        int[] results) {
 
-        super.onRequestPermissionsResult(requestCode, permissions, results);
+        super.onRequestPermissionsResult(
+            requestCode, permissions, results);
 
-        if (requestCode == LOCATION_REQUEST && pendingGeoCallback != null) {
+        if (requestCode == LOCATION_REQUEST &&
+            pendingGeoCallback != null) {
+
             boolean granted = false;
+
             for (int result : results) {
-                if (result == PackageManager.PERMISSION_GRANTED) granted = true;
+                if (result == PackageManager.PERMISSION_GRANTED) {
+                    granted = true;
+                }
             }
 
-            pendingGeoCallback.invoke(pendingGeoOrigin, granted, false);
+            pendingGeoCallback.invoke(
+                pendingGeoOrigin, granted, false);
+
             pendingGeoCallback = null;
             pendingGeoOrigin = null;
         }
