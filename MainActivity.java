@@ -7,11 +7,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.webkit.GeolocationPermissions; 
+import android.webkit.GeolocationPermissions;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -19,6 +20,7 @@ public class MainActivity extends Activity {
 
     private static final int LOCATION_REQUEST = 101;
     private WebView web;
+
     private GeolocationPermissions.Callback pendingGeoCallback;
     private String pendingGeoOrigin;
 
@@ -27,6 +29,7 @@ public class MainActivity extends Activity {
         super.onCreate(state);
 
         web = new WebView(this);
+
         web.getSettings().setJavaScriptEnabled(true);
         web.getSettings().setDomStorageEnabled(true);
         web.getSettings().setGeolocationEnabled(true);
@@ -35,13 +38,13 @@ public class MainActivity extends Activity {
 
             @Override
             public boolean shouldOverrideUrlLoading(
-                WebView view, WebResourceRequest request) {
+                    WebView view, WebResourceRequest request) {
                 return handleUrl(request.getUrl().toString());
             }
 
             @Override
             public boolean shouldOverrideUrlLoading(
-                WebView view, String url) {
+                    WebView view, String url) {
                 return handleUrl(url);
             }
         });
@@ -50,17 +53,17 @@ public class MainActivity extends Activity {
 
             @Override
             public void onGeolocationPermissionsShowPrompt(
-                String origin,
-                GeolocationPermissions.Callback callback) {
+                    String origin,
+                    GeolocationPermissions.Callback callback) {
 
                 if (ContextCompat.checkSelfPermission(
-                    MainActivity.this,
-                    Manifest.permission.ACCESS_FINE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(
-                    MainActivity.this,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                ) == PackageManager.PERMISSION_GRANTED) {
+                        MainActivity.this,
+                        Manifest.permission.ACCESS_FINE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED ||
+                    ContextCompat.checkSelfPermission(
+                        MainActivity.this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED) {
 
                     callback.invoke(origin, true, false);
 
@@ -69,12 +72,12 @@ public class MainActivity extends Activity {
                     pendingGeoCallback = callback;
 
                     ActivityCompat.requestPermissions(
-                        MainActivity.this,
-                        new String[]{
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        },
-                        LOCATION_REQUEST
+                            MainActivity.this,
+                            new String[]{
+                                Manifest.permission.ACCESS_FINE_LOCATION,
+                                Manifest.permission.ACCESS_COARSE_LOCATION
+                            },
+                            LOCATION_REQUEST
                     );
                 }
             }
@@ -90,32 +93,41 @@ public class MainActivity extends Activity {
             if (url.startsWith("intent://")) {
 
                 Intent intent = Intent.parseUri(
-                    url, Intent.URI_INTENT_SCHEME);
+                        url, Intent.URI_INTENT_SCHEME);
 
                 intent.setAction(Intent.ACTION_VIEW);
 
-                if (intent.resolveActivity(getPackageManager()) != null) {
+                // Google Maps App එක Open කිරීම
+                try {
                     startActivity(intent);
                     return true;
+
+                } catch (Exception e) {
+
+                    // Google Maps App එක නොමැති නම් fallback
+                    String fallback = intent.getStringExtra(
+                            "browser_fallback_url");
+
+                    if (fallback != null && !fallback.isEmpty()) {
+                        openExternal(fallback);
+                    } else {
+                        openExternal(
+                            "https://www.google.com/maps");
+                    }
+
+                    return true;
                 }
-
-                String fallback = intent.getStringExtra(
-                    "browser_fallback_url");
-
-                if (fallback != null && !fallback.isEmpty()) {
-                    openExternal(fallback);
-                } else {
-                    openExternal(
-                        "https://www.google.com/maps");
-                }
-
-                return true;
             }
 
             if (url.startsWith("https://") ||
                 url.startsWith("http://")) {
 
-                openExternal(url);
+                Uri uri = Uri.parse(url);
+
+                Intent intent = new Intent(
+                        Intent.ACTION_VIEW, uri);
+
+                startActivity(intent);
                 return true;
             }
 
@@ -129,26 +141,27 @@ public class MainActivity extends Activity {
     private void openExternal(String url) {
         try {
             Intent intent = new Intent(
-                Intent.ACTION_VIEW, Uri.parse(url));
+                    Intent.ACTION_VIEW,
+                    Uri.parse(url));
 
             startActivity(intent);
 
         } catch (Exception e) {
-            web.loadUrl(url);
+            // External browser unavailable
         }
     }
 
     @Override
     public void onRequestPermissionsResult(
-        int requestCode,
-        String[] permissions,
-        int[] results) {
+            int requestCode,
+            String[] permissions,
+            int[] results) {
 
         super.onRequestPermissionsResult(
-            requestCode, permissions, results);
+                requestCode, permissions, results);
 
         if (requestCode == LOCATION_REQUEST &&
-            pendingGeoCallback != null) {
+                pendingGeoCallback != null) {
 
             boolean granted = false;
 
@@ -159,7 +172,7 @@ public class MainActivity extends Activity {
             }
 
             pendingGeoCallback.invoke(
-                pendingGeoOrigin, granted, false);
+                    pendingGeoOrigin, granted, false);
 
             pendingGeoCallback = null;
             pendingGeoOrigin = null;
